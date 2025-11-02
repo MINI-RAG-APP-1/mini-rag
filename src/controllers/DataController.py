@@ -1,6 +1,6 @@
 from .BaseController import BaseController
 from fastapi import UploadFile
-from models import FileValidationMessage, ResponseStatus
+from models import ResponseMessage, ResponseStatus
 
 class DataController(BaseController):
     def __init__(self):
@@ -14,14 +14,14 @@ class DataController(BaseController):
         
         if file_extension not in allowed_types:
             return ResponseStatus.FAILURE.value, {
-                "message": FileValidationMessage.TYPE_NOT_ALLOWED.value.format(
+                "message": ResponseMessage.TYPE_NOT_ALLOWED.value.format(
                     file_extension=file_extension,allowed_types=", ".join(allowed_types)
                     )
                 }
             
         if file.size > max_size * self.size_scale:
             return ResponseStatus.FAILURE.value, {
-                "message": FileValidationMessage.SIZE_EXCEEDED.value.format(max_size=max_size)
+                "message": ResponseMessage.SIZE_EXCEEDED.value.format(max_size=max_size)
                 }
 
-        return ResponseStatus.SUCCESS.value, {"message": FileValidationMessage.VALID_FILE.value}
+        return ResponseStatus.SUCCESS.value, {"message": ResponseMessage.VALID_FILE.value}

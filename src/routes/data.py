@@ -1,12 +1,13 @@
-import os
 import aiofiles as aio
 from fastapi import APIRouter, UploadFile, status, Depends
 from fastapi.responses import JSONResponse
 
-from controllers import DataController, ProjectController
+from controllers import DataController, ProjectController, ProcessController
 from helpers.config import get_settings, Settings
-from helpers.utils import generate_unique_filename
-from models import FileValidationMessage
+from helpers.utils import generate_unique_filepath, message_handler
+from models import ResponseMessage
+
+from .schemas.data import ProcessResponse
 
 data_router = APIRouter(
     prefix="/api/v1/data",
@@ -27,7 +28,7 @@ async def upload_data(project_id: str,
         return JSONResponse(content=message, status_code=status.HTTP_400_BAD_REQUEST)
 
     project_dir_path = ProjectController().get_project_path(project_id)
-    generated_file_info = generate_unique_filename(file.filename, project_dir_path)
+    generated_file_info = generate_unique_filepath(file.filename, project_dir_path)
     file_path = generated_file_info.get("path")
 
     try:
@@ -35,9 +36,43 @@ async def upload_data(project_id: str,
             while chunk := await file.read(app_settings.FILE_DEFAULT_CHUNK_SIZE):
                 await out_file.write(chunk)
 
-            return JSONResponse(content=FileValidationMessage.FILE_UPLOADED.value.format(filename=generated_file_info.get("filename")), 
-                                status_code=status.HTTP_201_CREATED)
     except Exception as e:
-        return JSONResponse(content=FileValidationMessage.FILE_UPLOADED_ERROR.value.format(filename=generated_file_info.get("filename")), status_code=status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(content=ResponseMessage.FILE_UPLOADED_ERROR.value.format(filename=generated_file_info.get("filename")), status_code=status.HTTP_400_BAD_REQUEST)
     
-    return JSONResponse(content=message, status_code=status.HTTP_200_OK)
+    message = message_handler(
+        ResponseMessage.FILE_UPLOADED.value.format(filename=generated_file_info.get("filename")),
+        file_id=generated_file_info.get("filename")
+    )
+    return JSONResponse(content=message, status_code=status.HTTP_201_CREATED)
+
+@data_router.post("/process/{project_id}")
+async def process_data(project_id: str, 
+                       process_request: ProcessResponse):
+    
+    file_id = process_request.file_id
+    chunk_size = process_request.chunk_size
+    overlap_size = process_request.overlap_size
+    
+    process_controller = ProcessController(project_id)
+
+    file_content = process_controller.get_file_content(file_id)
+    file_chunks = process_controller.process_file_content(
+        file_content=file_content,
+        chunk_size=chunk_size,
+        overlap_size=overlap_size
+    )
+    
+    if file_chunks is None or len(file_chunks) == 0:
+        return JSONResponse(
+            content=message_handler(
+                ResponseMessage.FILE_PROCESSING_ERROR.value.format(file_id=file_id)
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+    
+    message = message_handler(
+        ResponseMessage.FILE_PROCESSING_SUCCESS.value,
+        file_id=file_id,
+        file_chunks=file_chunks
+    )
+    return message

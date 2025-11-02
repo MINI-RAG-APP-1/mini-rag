@@ -15,7 +15,7 @@ def generate_random_string(length: int = 12) -> str:
     return ''.join(random.choice(letters_and_digits) for i in range(length))
 
 
-def generate_unique_filename(original_filename: str, project_path: str) -> str:
+def generate_unique_filepath(original_filename: str, project_path: str) -> str:
         random_str = generate_random_string()
         original_filename = get_clean_file_name(original_filename)
         is_new = False
@@ -30,3 +30,7 @@ def generate_unique_filename(original_filename: str, project_path: str) -> str:
             "filename": f"{random_str}_{original_filename}",
             "path": file_path
         }
+
+def message_handler(message: str, *args, **kwargs) -> dict:
+    message = dict(message=message, **kwargs)
+    return message
