@@ -5,7 +5,7 @@ import string
 
 def get_clean_file_name(filename: str) -> str:
     # Remove any unwanted characters from the filename
-    cleaned_file_name = re.sub(r'[^\w.]', '', filename.strip())
+    cleaned_file_name = re.sub(r'[^\w.]', '_', filename.strip())
     cleaned_file_name = cleaned_file_name.replace(" ", "_")
     return cleaned_file_name
 
@@ -27,8 +27,9 @@ def generate_unique_filepath(original_filename: str, project_path: str) -> str:
                 random_str = generate_random_string()
         
         return {
-            "filename": f"{random_str}_{original_filename}",
-            "path": file_path
+            "filename": f"{original_filename}",
+            "path": file_path,
+            "prefix": random_str
         }
 
 def message_handler(message: str, *args, **kwargs) -> dict:
