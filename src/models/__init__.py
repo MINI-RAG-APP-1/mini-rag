@@ -1,2 +1,1 @@
-from .enums.ResponseEnums import *
-from .enums.ProcessingEnum import *
+from .enums import *

@@ -19,9 +19,8 @@ class Project(BaseModel):
     def get_indexes(cls):
         return [
             {
-                "name": "project_id_index_1",
-                "key": [("project_id", 1)],
+                "name": "project_id_index_1",   # Index name
+                "keys": [("project_id", 1)],     # 1 for ascending order, -1 for descending order
                 "unique": True
             }
         ]
-    

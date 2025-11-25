@@ -16,13 +16,13 @@ class DataChunk(BaseModel):
     def get_indexes(cls):
         return [
             {
-                "name": "chunk_project_id_index_1",
-                "key": [("chunk_project_id", 1)],
-                "unique": False
+                "name": "chunk_project_id_index_1",     # Index name
+                "keys": [("chunk_project_id", 1)],       # 1 for ascending order, -1 for descending order
+                "unique": False                         # False because each project can have multiple chunks
             },
             {
-                "name": "chunk_order_index_1",
-                "key": [("chunk_order", 1)],
+                "name": "chunk_order_index_1",   # Index name
+                "keys": [("chunk_order", 1)],     # 1 for ascending order, -1 for descending order
                 "unique": False
             }
         ]

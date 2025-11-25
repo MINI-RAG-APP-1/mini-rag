@@ -1,9 +1,5 @@
 from enum import Enum
 
-class ResponseStatus(Enum):
-    SUCCESS = True
-    FAILURE = False
-    
 class ResponseMessage(Enum):
     TYPE_NOT_ALLOWED = "File type '{file_extension}' is not allowed. Allowed types: {allowed_types}"
     SIZE_EXCEEDED = "File size exceeds the maximum limit of {max_size} MB."

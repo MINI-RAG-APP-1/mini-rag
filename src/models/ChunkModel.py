@@ -8,10 +8,26 @@ from typing import List
 class ChunkModel(BaseDataModel):
     def __init__(self, db_client):
         super().__init__(db_client)
-        self.collection = self.db_client[DataBaseEnum.COLLECTION_CHUNK_NAME.value]
+    
+    @classmethod
+    async def create_instance(cls, db_client):
+        isinstance = cls(db_client)
+        await isinstance.init_collection()
+        return isinstance
+    
+    async def init_collection(self):
+        collection_name = DataBaseEnum.COLLECTION_CHUNK_NAME.value
+        all_collections = await self.db_client.list_collection_names()
+        self.collection = self.db_client[collection_name]
+        
+        if collection_name not in all_collections:
+            print(f"⏳ Initializing collection: '{collection_name}'")
+            indexes = DataChunk.get_indexes()
+            for index in indexes:
+                await self.collection.create_index(**index)
     
     async def insert_chunk(self, chunk: DataChunk) -> DataChunk:
-        result = self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
+        result = await self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
         chunk._id = result.inserted_id
         return chunk
 

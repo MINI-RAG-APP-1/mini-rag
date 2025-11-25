@@ -4,10 +4,26 @@ from .db_schemas import Project
 from .enums.DataBaseEnum import DataBaseEnum
 
 class ProjectModel(BaseDataModel):
-    def __init__(self, db_client):
+    def __init__(self, db_client: object):
         super().__init__(db_client)
-        self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
     
+    @classmethod
+    async def create_instance(cls, db_client):
+        isinstance = cls(db_client)
+        await isinstance.init_collection()
+        return isinstance
+    
+    async def init_collection(self):
+        collection_name = DataBaseEnum.COLLECTION_PROJECT_NAME.value
+        all_collections = await self.db_client.list_collection_names()
+        self.collection = self.db_client[collection_name]
+        
+        if collection_name not in all_collections:
+            print(f"⏳ Initializing collection: '{collection_name}'")
+            indexes = Project.get_indexes()
+            for index in indexes:
+                await self.collection.create_index(**index)
+            
     async def create_project(self, project: Project) -> Project:
         result = await self.collection.insert_one(project.model_dump(by_alias=True, exclude_unset=True))
         project._id = result.inserted_id
