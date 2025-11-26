@@ -1,6 +1,7 @@
 import os
 from helpers.config import get_settings, Settings
 
+
 class BaseController:
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
     

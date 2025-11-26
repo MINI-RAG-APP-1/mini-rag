@@ -2,10 +2,12 @@ from .BaseController import BaseController
 from fastapi import UploadFile
 from models.enums import ResponseMessage, StatusEnum
 
+
 class DataController(BaseController):
     def __init__(self):
         super().__init__()
         self.size_scale = 2**20  # 1 MB in bytes
+    
     
     def validate_file(self, file:UploadFile) -> bool:
         file_extension = file.content_type

@@ -5,15 +5,18 @@ from .enums.DataBaseEnum import DataBaseEnum
 from pymongo import InsertOne
 from typing import List
 
+
 class ChunkModel(BaseDataModel):
     def __init__(self, db_client):
         super().__init__(db_client)
+    
     
     @classmethod
     async def create_instance(cls, db_client):
         isinstance = cls(db_client)
         await isinstance.init_collection()
         return isinstance
+    
     
     async def init_collection(self):
         collection_name = DataBaseEnum.COLLECTION_CHUNK_NAME.value
@@ -26,11 +29,13 @@ class ChunkModel(BaseDataModel):
             for index in indexes:
                 await self.collection.create_index(**index)
     
+    
     async def insert_chunk(self, chunk: DataChunk) -> DataChunk:
         result = await self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
         chunk.id = result.inserted_id
         return chunk
 
+    
     async def get_chunk(self, chunk_id: str) -> DataChunk:
         chunk = await self.collection.find_one({
             "_id": ObjectId(chunk_id)
@@ -40,6 +45,7 @@ class ChunkModel(BaseDataModel):
             return DataChunk(**chunk)
         
         return None
+    
     
     async def insert_many_chunks(self, chunks: List[DataChunk], batch_size: int = 100) -> List[DataChunk]:
         for i in range(0, len(chunks), batch_size):
@@ -51,6 +57,7 @@ class ChunkModel(BaseDataModel):
             self.collection.bulk_write(ops)
         
         return len(chunks)
+    
     
     async def delete_chunks_by_id(self, project_id: str):
         result = await self.collection.delete_many({'chunk_project_id': project_id})

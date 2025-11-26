@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import List
 
+
 class Settings(BaseSettings):
     APP_NAME: str
     APP_VERSION: str
@@ -14,9 +15,11 @@ class Settings(BaseSettings):
     MONGO_URI: str
     MONGODB_NAME: str
     
+    
     class Config:
         env_file = ".env" 
         extra = "ignore"
+
 
 def get_settings() -> Settings:
     return Settings()

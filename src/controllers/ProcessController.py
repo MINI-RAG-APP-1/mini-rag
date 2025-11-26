@@ -12,6 +12,7 @@ class ProcessController(BaseController):
         self.project_id = project_id
         self.project_path = ProjectController().get_project_path(project_id)
     
+    
     def get_file_extension(self, file_id: str) -> str:
         return os.path.splitext(file_id)[-1]
 
@@ -20,7 +21,8 @@ class ProcessController(BaseController):
             if filename.startswith(prefix):
                 return filename
         return None
-        
+    
+    
     def get_file_loader(self, file_id: str):
         
         file_name = self.resolve_file_id(file_id)
@@ -35,6 +37,7 @@ class ProcessController(BaseController):
 
         return None
 
+    
     def get_file_content(self, file_id: str):
         loader = self.get_file_loader(file_id)
         
@@ -42,6 +45,7 @@ class ProcessController(BaseController):
             return None
         
         return loader.load()
+    
     
     def process_file_content(self, file_content: list, chunk_size: int = 100, overlap_size: int = 20):
         text_splitter = RecursiveCharacterTextSplitter(

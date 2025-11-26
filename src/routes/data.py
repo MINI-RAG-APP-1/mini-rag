@@ -11,10 +11,12 @@ from models import ProjectModel, ChunkModel, AssetModel
 from models.db_schemas import DataChunk, Asset
 from .schemas import ProcessRequest
 
+
 data_router = APIRouter(
     prefix="/api/v1/data",
     tags=["api_v1", "data"],
 )
+
 
 @data_router.post("/upload/{project_id}")
 async def upload_data(request: Request, project_id: str, 
@@ -66,6 +68,7 @@ async def upload_data(request: Request, project_id: str,
         file_name=asset.asset_name,
     )
     return JSONResponse(content=message, status_code=status.HTTP_201_CREATED)
+
 
 @data_router.post("/process/{project_id}")
 async def process_data(request: Request, project_id: str, 

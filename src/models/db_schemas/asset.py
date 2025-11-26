@@ -3,6 +3,7 @@ from typing import Optional
 from bson.objectid import ObjectId
 from datetime import datetime as dt, timezone
 
+
 class Asset(BaseModel):
     id: Optional[ObjectId] = Field(None, alias="_id")
     asset_project_id: str = Field(..., min_length=1, max_length=100)
@@ -18,6 +19,7 @@ class Asset(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+    
     @classmethod
     def get_indexes(cls):
         return [
