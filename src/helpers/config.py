@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     DEFAULT_GENERATION_OUTPUT_MAX_TOKENS: int
     DEFAULT_GENERATION_INPUT_MAX_CHARACTERS: int
     
+    VECTOR_DB_BACKEND: str
+    VECTOR_DB_PATH: str
+    VECTOR_DB_PATH_NAME: str
+    VECTOR_DB_DISTANCE_METRIC: str = None
+    
+    
     
     class Config:
         env_file = ".env" 

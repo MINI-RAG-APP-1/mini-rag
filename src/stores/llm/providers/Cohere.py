@@ -64,9 +64,9 @@ class Cohere(LLMInterface):
             self.logger.error("Embedding model ID is not set.")
             return None
         
-        input_type = CohereDocumentTypeEnums.DOCUMENT.value
-        if document_type and document_type == CohereDocumentTypeEnums.QUERY.value:
-            input_type = CohereDocumentTypeEnums.QUERY.value
+        (document, query) = (CohereDocumentTypeEnums.DOCUMENT.value, CohereDocumentTypeEnums.QUERY.value)
+        
+        input_type = query if document_type == query else document
         
         response = self.client.embed(
             model=self.embedding_model_id,
