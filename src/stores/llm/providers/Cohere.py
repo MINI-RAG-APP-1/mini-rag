@@ -78,7 +78,12 @@ class Cohere(LLMInterface, ModelUtils):
             embedding_types=['float']
         )
         
-        if not response or not response.embeddings or not response.embeddings.float:
+        if (
+            response is None
+            or response.embeddings is None
+            or response.embeddings.float is None
+            or len(response.embeddings.float) == 0
+            ):
             self.logger.error("Failed to get embedding from Cohere response.")
             return None
         

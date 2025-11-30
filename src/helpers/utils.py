@@ -36,9 +36,13 @@ def generate_unique_filepath(original_filename: str, project_path: str) -> Dict[
     }
 
 
-def message_handler(message: str, *args, **kwargs) -> dict:
+def message_handler(message: str, keep_all=False, *args, **kwargs) -> dict:
     new_kwargs = {}
     for key, val in kwargs.items():
+        if keep_all:
+            new_kwargs = kwargs
+            break
+        
         if not is_empty(val):
             new_kwargs[key] = val
 

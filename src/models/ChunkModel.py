@@ -58,6 +58,15 @@ class ChunkModel(BaseDataModel):
         
         return len(chunks)
     
+    async def get_project_chunks(self, project_id: str, page: int=1, page_size: int = 50) -> List[DataChunk]:
+        
+        cursor = self.collection.find({'chunk_project_id': project_id}).skip((page-1) * page_size).limit(page_size)
+        
+        chunks = []
+        async for chunk in cursor:
+            chunks.append(DataChunk(**chunk))
+        
+        return chunks
     
     async def delete_chunks_by_id(self, project_id: str):
         result = await self.collection.delete_many({'chunk_project_id': project_id})

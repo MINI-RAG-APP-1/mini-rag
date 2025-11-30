@@ -36,7 +36,7 @@ class Qdrant(VectorDBInterface):
         return self.client.get_collection(collection_name=collection_name).model_dump()
     
     def delete_collection(self, collection_name: str):
-        if self.is_collenction_exists(collection_name):
+        if self.is_collection_exists(collection_name):
             return self.client.delete_collection(collection_name=collection_name)
     
     def create_collection(self, 
@@ -46,7 +46,7 @@ class Qdrant(VectorDBInterface):
         if do_reset: 
             _ = self.delete_collection(collection_name=collection_name)
         
-        if not self.is_collenction_exists(collection_name):
+        if not self.is_collection_exists(collection_name):
             _ = self.client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(size=embedding_size,
@@ -62,7 +62,7 @@ class Qdrant(VectorDBInterface):
                    metadata: dict=None, 
                    record_id: str=None):
         
-        if not self.is_collenction_exists(collection_name):
+        if not self.is_collection_exists(collection_name):
             self.logger.error(f"Cannot insert into Collection: {collection_name} does not exist.")
             return False
         
@@ -100,7 +100,7 @@ class Qdrant(VectorDBInterface):
             metadatas = [None] * len(texts)
         
         if record_ids is None:
-            record_ids = [None] * len(texts)
+            record_ids = list(range(len(texts)))
         
         for i in range(0, len(texts), batch_size):
             batch_end = min(i + batch_size, len(texts))

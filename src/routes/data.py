@@ -126,7 +126,7 @@ async def process_data(request: Request, project_id: str,
     
     project = await project_model.get_project_or_create_one(project_id=project_id)
     process_controller = ProcessController(project_id)
-
+    
     if asset_name:
         asset_record = await asset_model.get_asset_by_name(asset_name=asset_name, asset_project_id=project.project_id)
         if asset_record is None:
