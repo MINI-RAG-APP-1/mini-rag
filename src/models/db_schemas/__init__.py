@@ -1,3 +1,13 @@
-from .project import Project
-from .asset import Asset
-from .chunk import DataChunk, RetrievedDocument
+from .minirag.schemas import (
+    Project,
+    Asset,
+    DataChunk,
+    RetrievedDocument
+)
+
+__all__ = [
+    "Project",
+    "Asset",
+    "DataChunk",
+    "RetrievedDocument"
+]

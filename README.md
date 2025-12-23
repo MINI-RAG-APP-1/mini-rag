@@ -5,6 +5,10 @@ This is a minimal implementation of the RAG model for question answering.
 ## Requirements
 
 - Python 3.8 or later
+```bash
+sudo apt update
+sudo apt install libpq-dev gcc python3-dev
+```
 
 #### Install Python using MiniConda
 
