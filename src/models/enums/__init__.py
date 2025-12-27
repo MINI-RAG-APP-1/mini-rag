@@ -3,6 +3,7 @@ from .ProcessingEnum import ProcessingEnum
 from .StatusEnum import StatusEnum
 from .ResponseEnums import ResponseMessage
 from .AssetTypeEnum import AssetTypeEnum
+from .DatabaseTypeEnum import DatabaseType
 
 
 __all__ = [
@@ -10,5 +11,6 @@ __all__ = [
     "ProcessingEnum",
     "StatusEnum",
     "ResponseMessage",
-    "AssetTypeEnum"
+    "AssetTypeEnum",
+    "DatabaseType"
 ]

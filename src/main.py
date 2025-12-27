@@ -6,6 +6,8 @@ from stores import LLMFactory, VectorDBFactory
 from stores.llm.templates.template_parser import TemplateParser
 import logging
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from motor.motor_asyncio import AsyncIOMotorClient
+from models.enums import DatabaseType
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -13,13 +15,19 @@ logger = logging.getLogger('uvicorn.error')
 async def lifespan(app: FastAPI):
     settings = get_settings()
     
+    app.mongo_conn = AsyncIOMotorClient(settings.MONGO_URI)
+    
     # Startup
     pg_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DB}"
     app.db_engine = create_async_engine(pg_conn)
-    app.db_client = async_sessionmaker(
-        app.db_engine, 
-        class_=AsyncSession,
-        expire_on_commit=False
+
+    if settings.DB_TYPE == DatabaseType.MONGODB.value:
+        app.db_client = app.mongo_conn[settings.MONGODB_NAME]
+    else:
+        app.db_client = async_sessionmaker(
+            app.db_engine, 
+            class_=AsyncSession,
+            expire_on_commit=False
     )
     
     logger.info("✅ Connected to Database")

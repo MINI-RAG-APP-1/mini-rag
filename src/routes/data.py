@@ -1,16 +1,16 @@
 import os
 import aiofiles as aio
 import logging
-from typing import List
+from typing import List, Union
 from fastapi import APIRouter, UploadFile, status, Request, File, Depends
 from fastapi.responses import JSONResponse
 from controllers import DataController, ProjectController, ProcessController
 from helpers.config import get_settings, Settings
 from helpers.utils import generate_unique_filepath, message_handler
 from models.enums import ResponseMessage, AssetTypeEnum
-from models import ProjectModel, ChunkModel, AssetModel
+from models import ModelFactory, DatabaseType
 
-from models.db_schemas import DataChunk, Asset
+from models.db_schemas import SchemaFactory
 from .schemas import ProcessRequest
 
 logger = logging.getLogger('uvicorn.error')
@@ -23,11 +23,21 @@ data_router = APIRouter(
 
 @data_router.post("/upload/{project_id}")
 async def upload_data(request: Request, 
-                      project_id: int, 
+                      project_id: Union[int, str], 
                       files: List[UploadFile] = File(...),
                       app_settings: Settings = Depends(get_settings)):
     
-    project_model = await ProjectModel.create_instance(
+    if app_settings.DB_TYPE == DatabaseType.POSTGRES.value:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return JSONResponse(
+                content={"message": "Project ID must be a number"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+    
+    project_model = await ModelFactory.create_project_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
@@ -69,7 +79,8 @@ async def upload_data(request: Request,
         return JSONResponse(content={"errors": errors}, status_code=status.HTTP_400_BAD_REQUEST)
     
     # Storing the asset info in DB
-    asset_model = await AssetModel.create_instance(
+    asset_model = await ModelFactory.create_asset_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
@@ -79,7 +90,9 @@ async def upload_data(request: Request,
         asset_full_name = f"{file_info.get('prefix')}_{file_info.get('filename')}"
         file_path = file_info.get("path")
         
-        asset_resource = Asset(
+        asset_schema = SchemaFactory.get_asset_schema(app_settings.DB_TYPE)
+
+        asset_resource = asset_schema(
             asset_project_id=project.project_id,
             asset_type=AssetTypeEnum.FILE.value,
             asset_name=asset_full_name,
@@ -104,21 +117,33 @@ async def upload_data(request: Request,
 
 @data_router.post("/process/{project_id}")
 async def process_data(request: Request, 
-                       project_id: int, 
-                       process_request: ProcessRequest):
+                       project_id: Union[int, str], 
+                       process_request: ProcessRequest,
+                       app_settings: Settings = Depends(get_settings)):
+    
+    if app_settings.DB_TYPE == DatabaseType.POSTGRES.value:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return JSONResponse(
+                content={"message": "Project ID must be a number"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
     
     asset_name = process_request.asset_name
     chunk_size = process_request.chunk_size
     overlap_size = process_request.overlap_size
     do_reset = process_request.do_reset
     
-    project_model = await ProjectModel.create_instance(
+    project_model = await ModelFactory.create_project_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
-    asset_model = await AssetModel.create_instance(
-            db_client=request.app.db_client
-        )
+    asset_model = await ModelFactory.create_asset_model(
+        db_type=app_settings.DB_TYPE,
+        db_client=request.app.db_client
+    )
     
     project = await project_model.get_project_or_create_one(project_id=project_id)
     process_controller = ProcessController(project_id)
@@ -153,7 +178,8 @@ async def process_data(request: Request,
         )
     project_files_names = list(map(lambda x: x.asset_name, project_files))
 
-    chunk_model = await ChunkModel.create_instance(
+    chunk_model = await ModelFactory.create_chunk_model(
+            db_type=app_settings.DB_TYPE,
             db_client=request.app.db_client
         )
         
@@ -165,7 +191,8 @@ async def process_data(request: Request,
     files_names = []
     all_file_chunks = []
     warnings = {'content': []}
-    for idx, asset_name in enumerate(project_files_names):
+    for idx, asset in enumerate(project_files):
+        asset_name = asset.asset_name
         file_content = process_controller.get_file_content(asset_name)
         
         if file_content is None:
@@ -190,13 +217,13 @@ async def process_data(request: Request,
                 ),
                 status_code=status.HTTP_400_BAD_REQUEST
             )
-        
-        file_chunks_records = [DataChunk(
+        data_chunk_schema = SchemaFactory.get_chunk_schema(app_settings.DB_TYPE)
+        file_chunks_records = [data_chunk_schema(
             chunk_text=chunk.page_content,
             chunk_metadata=chunk.metadata,
             chunk_order=i+1,
             chunk_project_id=project.project_id,
-            chunk_asset_id=idx+1,
+            chunk_asset_id=asset.asset_id,
             ) for i, chunk in enumerate(file_chunks)
         ]
         

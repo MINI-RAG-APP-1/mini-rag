@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Union
+
+from models.enums.DatabaseTypeEnum import DatabaseType
 from .BaseController import BaseController
-from models.db_schemas import Project, DataChunk
 from stores.vectordb import VectorDBInterface
 from stores.llm import LLMInterface
 from stores.llm.LLMEnums import DocumentTypeEnums
@@ -21,14 +22,14 @@ class NLPController(BaseController):
         self.embedding_client: LLMInterface = embedding_client
         self.template_parser: TemplateParser = template_parser
         
-    def generate_collection_name(self, project_id: int):
+    def generate_collection_name(self, project_id: Union[int, str]):
         return f"collection_{project_id}".strip()
     
-    def reset_db_collection(self, project: Project):
+    def reset_db_collection(self, project):
         collection_name = self.generate_collection_name(project_id=project.project_id)
         return self.vectordb_client.delete_collection(collection_name=collection_name)
         
-    def get_vector_collection_info(self, project: Project):
+    def get_vector_collection_info(self, project):
         collection_name = self.generate_collection_name(project_id=project.project_id)
         collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
         return json.loads(
@@ -36,8 +37,8 @@ class NLPController(BaseController):
             )
     
     def index_into_vector_db(self, 
-                             project: Project, 
-                             chunks: List[DataChunk],
+                             project, 
+                             chunks: List,
                              chunks_ids: List[int], 
                              do_reset: bool=False):
         
@@ -72,7 +73,7 @@ class NLPController(BaseController):
         return True
 
     def search_vector_db(self, 
-                         project: Project, 
+                         project, 
                          query_text: str, 
                          top_k: int =5):
         collection_name = self.generate_collection_name(project_id=project.project_id)
@@ -97,7 +98,7 @@ class NLPController(BaseController):
         return results
 
     def answer_query(self, 
-                     project: Project, 
+                     project, 
                      query_text: str, 
                      top_k: int =5, 
                      max_output_tokens: int = 512, 

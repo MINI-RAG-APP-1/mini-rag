@@ -1,8 +1,8 @@
-from .BaseDataModel import BaseDataModel
-from .db_schemas import DataChunk
+from ..BaseDataModel import BaseDataModel
+from ...db_schemas import DataChunk
 from typing import List
 from sqlalchemy.future import select
-from sqlalchemy import func, delete
+from sqlalchemy import delete
 
 
 class ChunkModel(BaseDataModel):

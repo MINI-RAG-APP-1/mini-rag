@@ -1,9 +1,8 @@
-from .BaseDataModel import BaseDataModel
-from .db_schemas import Asset
-from .enums.DataBaseEnum import DataBaseEnum
+from ..BaseDataModel import BaseDataModel
+from ...db_schemas import Asset
 from typing import List
 from sqlalchemy.future import select
-from sqlalchemy import func, delete
+from sqlalchemy import func
 
 class AssetModel(BaseDataModel):
     def __init__(self, db_client: object):

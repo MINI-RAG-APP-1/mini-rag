@@ -1,6 +1,6 @@
 from typing import Tuple
-from .BaseDataModel import BaseDataModel
-from .db_schemas import Project
+from ..BaseDataModel import BaseDataModel
+from ...db_schemas import Project
 from sqlalchemy.future import select
 from sqlalchemy import func
 

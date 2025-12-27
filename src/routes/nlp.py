@@ -1,9 +1,12 @@
-from typing import List
+from typing import List, Union
 import logging
-from fastapi import APIRouter, status, Request
+from fastapi import APIRouter, Depends, status, Request
 from fastapi.responses import JSONResponse
+
+from helpers.config import Settings, get_settings
+from models.enums.DatabaseTypeEnum import DatabaseType
 from .schemas import PushRequest, SearchRequest, AnswerRequest
-from models import ProjectModel, ChunkModel
+from models import ModelFactory
 from controllers import NLPController
 from models.enums import ResponseMessage
 from helpers.utils import message_handler
@@ -19,10 +22,22 @@ nlp_router = APIRouter(
 
 @nlp_router.post("/index/push/{project_id}")
 async def index_project(request: Request, 
-                        project_id: int,
-                        push_request: PushRequest):
+                        project_id: Union[int, str],
+                        push_request: PushRequest,
+                        app_settings: Settings = Depends(get_settings)):
     
-    project_model = await ProjectModel.create_instance(
+    if app_settings.DB_TYPE == DatabaseType.POSTGRES.value:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return JSONResponse(
+                content={"message": "Project ID must be a number"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+    
+    
+    project_model = await ModelFactory.create_project_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
@@ -34,7 +49,8 @@ async def index_project(request: Request,
             status_code=status.HTTP_404_NOT_FOUND
         )
     
-    chunk_model = await ChunkModel.create_instance(
+    chunk_model = await ModelFactory.create_chunk_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
@@ -86,9 +102,19 @@ async def index_project(request: Request,
 
 
 @nlp_router.get("/index/info/{project_id}")
-async def get_index_info(request: Request, project_id: int):
+async def get_index_info(request: Request, project_id: Union[int, str], app_settings: Settings = Depends(get_settings)):
     
-    project_model = await ProjectModel.create_instance(
+    if app_settings.DB_TYPE == DatabaseType.POSTGRES.value:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return JSONResponse(
+                content={"message": "Project ID must be a number"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+    
+    project_model = await ModelFactory.create_project_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
@@ -116,10 +142,21 @@ async def get_index_info(request: Request, project_id: int):
 
 @nlp_router.post("/index/search/{project_id}")
 async def search_index(request: Request, 
-                       project_id: int, 
-                       search_request: SearchRequest):
+                       project_id: Union[int, str], 
+                       search_request: SearchRequest,
+                       app_settings: Settings = Depends(get_settings)):
     
-    project_model = await ProjectModel.create_instance(
+    if app_settings.DB_TYPE == DatabaseType.POSTGRES.value:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return JSONResponse(
+                content={"message": "Project ID must be a number"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+    
+    project_model = await ModelFactory.create_project_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     
@@ -156,10 +193,21 @@ async def search_index(request: Request,
 
 @nlp_router.post("/index/answer/{project_id}")
 async def answer_query(request: Request, 
-                       project_id: int, 
-                       answer_request: AnswerRequest):
+                       project_id: Union[int, str], 
+                       answer_request: AnswerRequest,
+                       app_settings: Settings = Depends(get_settings)):
     
-    project_model = await ProjectModel.create_instance(
+    if app_settings.DB_TYPE == DatabaseType.POSTGRES.value:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return JSONResponse(
+                content={"message": "Project ID must be a number"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+    
+    project_model = await ModelFactory.create_project_model(
+        db_type=app_settings.DB_TYPE,
         db_client=request.app.db_client
     )
     

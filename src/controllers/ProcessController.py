@@ -1,4 +1,5 @@
 import os
+from typing import Union
 from models.enums import ProcessingEnum
 from .BaseController import BaseController
 from .ProjectController import ProjectController
@@ -7,7 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class ProcessController(BaseController):
-    def __init__(self, project_id: int):
+    def __init__(self, project_id: Union[int, str]):
         super().__init__()
         self.project_id = project_id
         self.project_path = ProjectController().get_project_path(project_id)
