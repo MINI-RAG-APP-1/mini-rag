@@ -23,20 +23,20 @@ class NLPController(BaseController):
         self.template_parser: TemplateParser = template_parser
         
     def generate_collection_name(self, project_id: Union[int, str]):
-        return f"collection_{project_id}".strip()
+        return f"collection_{self.vectordb_client.default_vector_size}_{project_id}".strip()
     
-    def reset_db_collection(self, project):
+    async def reset_db_collection(self, project):
         collection_name = self.generate_collection_name(project_id=project.project_id)
-        return self.vectordb_client.delete_collection(collection_name=collection_name)
+        return await self.vectordb_client.delete_collection(collection_name=collection_name)
         
-    def get_vector_collection_info(self, project):
+    async def get_vector_collection_info(self, project):
         collection_name = self.generate_collection_name(project_id=project.project_id)
-        collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
+        collection_info = await self.vectordb_client.get_collection_info(collection_name=collection_name)
         return json.loads(
             json.dumps(collection_info, default=lambda o: o.__dict__)
             )
     
-    def index_into_vector_db(self, 
+    async def index_into_vector_db(self, 
                              project, 
                              chunks: List,
                              chunks_ids: List[int], 
@@ -48,13 +48,10 @@ class NLPController(BaseController):
         # manage items
         filtered_items = [(c.chunk_text, c.chunk_metadata) for c in chunks] # get texts and metadatas
         texts, metadatas = zip(*filtered_items) # transpose into two tiples
-        vectors = [
-            self.embedding_client.embed_text(text=text, document_type=DocumentTypeEnums.DOCUMENT.value) 
-            for text in texts 
-            ]
+        vectors = self.embedding_client.embed_text(text=texts, document_type=DocumentTypeEnums.DOCUMENT.value) 
         
         # create collection
-        self.vectordb_client.create_collection(
+        await self.vectordb_client.create_collection(
             collection_name=collection_name,
             embedding_size=self.embedding_client.embedding_size,
             do_reset=do_reset
@@ -62,7 +59,7 @@ class NLPController(BaseController):
         
         
         # insert into db
-        self.vectordb_client.insert_many(
+        await self.vectordb_client.insert_many(
             collection_name=collection_name,
             texts=list(texts),
             vectors=vectors,
@@ -72,7 +69,7 @@ class NLPController(BaseController):
         
         return True
 
-    def search_vector_db(self, 
+    async def search_vector_db(self, 
                          project, 
                          query_text: str, 
                          top_k: int =5):
@@ -83,10 +80,13 @@ class NLPController(BaseController):
             document_type=DocumentTypeEnums.QUERY.value
         )
         
+        if isinstance(query_vector, list) and len(query_vector) > 0:
+            query_vector = query_vector[0]
+        
         if not query_vector or len(query_vector) == 0:
             return False
         
-        results = self.vectordb_client.search_by_vector(
+        results = await self.vectordb_client.search_by_vector(
             collection_name=collection_name,
             query_vector=query_vector,
             top_k=top_k
@@ -97,7 +97,7 @@ class NLPController(BaseController):
         
         return results
 
-    def answer_query(self, 
+    async def answer_query(self, 
                      project, 
                      query_text: str, 
                      top_k: int =5, 
@@ -107,7 +107,7 @@ class NLPController(BaseController):
         answer, full_prompt, chat_history = (None,) * 3
         
         # search vector db
-        retrieved_docs = self.search_vector_db(
+        retrieved_docs = await self.search_vector_db(
             project=project,
             query_text=query_text,
             top_k=top_k
@@ -146,7 +146,7 @@ class NLPController(BaseController):
         return answer, full_prompt, chat_history
     
     
-    def simple_chat(self,
+    async def simple_chat(self,
                    query_text: str,
                    max_output_tokens: int = 512,
                    temperature: float = 0.2):

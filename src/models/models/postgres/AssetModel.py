@@ -19,7 +19,6 @@ class AssetModel(BaseDataModel):
         async with self.db_client() as session:
             async with session.begin():
                 session.add(asset)
-            await session.commit()
             await session.refresh(asset)
         
         return asset

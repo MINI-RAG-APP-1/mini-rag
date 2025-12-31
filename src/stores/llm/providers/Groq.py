@@ -3,6 +3,7 @@ from ..LLMEnums import GroqRolesEnums
 from groq import Groq as GroqClient
 import logging
 from ..utils import ModelUtils
+from typing import List, Union
 
 class Groq(LLMInterface, ModelUtils):
     
@@ -67,7 +68,7 @@ class Groq(LLMInterface, ModelUtils):
     
     
     def embed_text(self, 
-                   text: str, 
+                   text: Union[str, List[str]],
                    document_type: str=None):
         
         raise NotImplementedError

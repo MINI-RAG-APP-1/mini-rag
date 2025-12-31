@@ -6,12 +6,6 @@ from models.db_schemas import RetrievedDocument
 class VectorDBInterface(ABC):
     
     @abstractmethod
-    def __init__(self, 
-                 db_path: str, 
-                 distance_metric: str):
-        pass
-    
-    @abstractmethod
     def connect(self):
         pass
     
@@ -20,7 +14,7 @@ class VectorDBInterface(ABC):
         pass
     
     @abstractmethod
-    def is_collection_exists(self, collection_name: str) -> bool:
+    def is_collection_existed(self, collection_name: str) -> bool:
         pass
     
     @abstractmethod

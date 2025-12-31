@@ -4,7 +4,7 @@ import logging
 from typing import List, Union
 from fastapi import APIRouter, UploadFile, status, Request, File, Depends
 from fastapi.responses import JSONResponse
-from controllers import DataController, ProjectController, ProcessController
+from controllers import DataController, ProjectController, ProcessController, NLPController
 from helpers.config import get_settings, Settings
 from helpers.utils import generate_unique_filepath, message_handler
 from models.enums import ResponseMessage, AssetTypeEnum
@@ -148,6 +148,13 @@ async def process_data(request: Request,
     project = await project_model.get_project_or_create_one(project_id=project_id)
     process_controller = ProcessController(project_id)
     
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        template_parser=request.app.template_parser
+    )
+    
     if asset_name:
         asset_record = await asset_model.get_asset_by_name(asset_name=asset_name, asset_project_id=project.project_id)
         if asset_record is None:
@@ -184,6 +191,9 @@ async def process_data(request: Request,
         )
         
     if do_reset == 1:
+        collection_name = nlp_controller.generate_collection_name(project.project_id)
+        await request.app.vectordb_client.delete_collection(collection_name=collection_name)
+        
         await chunk_model.delete_chunks_by_id(project_id=project.project_id)
     
     no_files = 0

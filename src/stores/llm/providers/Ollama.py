@@ -4,6 +4,7 @@ from ..utils import ModelUtils
 
 import requests
 import logging
+from typing import List, Union
 
 
 class Ollama(LLMInterface, ModelUtils):
@@ -71,7 +72,7 @@ class Ollama(LLMInterface, ModelUtils):
         return result.get("message", {}).get("content", "").strip()
 
 
-    def embed_text(self, text: str, document_type: str = None):
+    def embed_text(self, text: Union[str, List[str]], document_type: str = None):
         
         if not self.embedding_model_id:
             self.logger.error("Embedding model ID is not set for Ollama.")
@@ -79,7 +80,7 @@ class Ollama(LLMInterface, ModelUtils):
         
         payload = {
             "model": self.embedding_model_id,
-            "input": text
+            "input": [text]
         }
 
         try:
@@ -94,7 +95,7 @@ class Ollama(LLMInterface, ModelUtils):
             return None
 
         result = response.json()
-        return result.get("embeddings", [None])[0] if result.get("embeddings") else None
+        return result.get("embeddings", [None]) if result.get("embeddings") else None
 
 
     def construct_prompt(self, prompt: str, role: str):

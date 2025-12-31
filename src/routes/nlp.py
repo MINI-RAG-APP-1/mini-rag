@@ -1,5 +1,6 @@
 from typing import List, Union
 import logging
+from tqdm.auto import tqdm
 from fastapi import APIRouter, Depends, status, Request
 from fastapi.responses import JSONResponse
 
@@ -55,10 +56,18 @@ async def index_project(request: Request,
     )
     
     nlp_controller = NLPController(
-        vectordb_client=request.app.vector_db_client,
+        vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
         template_parser=request.app.template_parser
+    )
+    
+    collection_name = nlp_controller.generate_collection_name(project_id=project.project_id)
+    
+    await request.app.vectordb_client.create_collection(
+        collection_name=collection_name,
+        embedding_size=nlp_controller.embedding_client.embedding_size,
+        do_reset=push_request.do_reset
     )
     
     pg_num = 1
@@ -67,22 +76,29 @@ async def index_project(request: Request,
     idx  = 0
     is_first_batch = True
     
+    total_chunks_count = await chunk_model.count_chunks_by_project(project_id=project.project_id)
+    pbar = tqdm(
+        total=total_chunks_count, 
+        desc=f"Indexing Project {project_id} into VectorDB", 
+        unit="chunk",
+        position=0,
+    )
+    
     while True:
         paged_chunks = await chunk_model.get_project_chunks(project_id=project.project_id, page=pg_num, page_size=pg_size)
         
         if not paged_chunks or len(paged_chunks) == 0:
             break
         
-        chunks_ids = list(range(idx, idx + len(paged_chunks)))
+        chunks_ids = [c.chunk_id for c in paged_chunks]
         
         # Only reset on first batch
         do_reset_batch = push_request.do_reset if is_first_batch else False
         
-        is_inserted = nlp_controller.index_into_vector_db(
+        is_inserted = await nlp_controller.index_into_vector_db(
             project=project, 
             chunks=paged_chunks, 
-            chunks_ids=chunks_ids, 
-            do_reset=do_reset_batch
+            chunks_ids=chunks_ids
         )
         
         if not is_inserted:
@@ -90,6 +106,8 @@ async def index_project(request: Request,
                 content=message_handler(ResponseMessage.VECTOR_DB_INDEXING_FAILED.value.format(project_id=project_id)),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+        pbar.update(len(paged_chunks))
         inserted_count += len(paged_chunks)
         idx += len(paged_chunks)
         pg_num += 1
@@ -127,13 +145,13 @@ async def get_index_info(request: Request, project_id: Union[int, str], app_sett
         )
     
     nlp_controller = NLPController(
-        vectordb_client=request.app.vector_db_client,
+        vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
         template_parser=request.app.template_parser
     )
     
-    collection_info = nlp_controller.get_vector_collection_info(project=project)
+    collection_info = await nlp_controller.get_vector_collection_info(project=project)
     
     return JSONResponse(
         content=message_handler(ResponseMessage.VECTOR_DB_COLLECTION_INFO_RETRIEVED.value.format(project_id=project_id), collection_info=collection_info),
@@ -169,13 +187,13 @@ async def search_index(request: Request,
         )
     
     nlp_controller = NLPController(
-        vectordb_client=request.app.vector_db_client,
+        vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
         template_parser=request.app.template_parser
     )
     
-    result: List[RetrievedDocument] = nlp_controller.search_vector_db(project=project, query_text=search_request.query, top_k=search_request.top_k)
+    result: List[RetrievedDocument] = await nlp_controller.search_vector_db(project=project, query_text=search_request.query, top_k=search_request.top_k)
     
     result = [r.model_dump() for r in result]
     
@@ -199,7 +217,7 @@ async def answer_query(request: Request,
                        app_settings: Settings = Depends(get_settings)):
     
     nlp_controller = NLPController(
-        vectordb_client=request.app.vector_db_client,
+        vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
         template_parser=request.app.template_parser
@@ -208,7 +226,7 @@ async def answer_query(request: Request,
     # If no project_id provided, use simple chatbot mode (no RAG)
     if project_id is None:
         try:
-            answer, full_prompt, chat_history = nlp_controller.simple_chat(
+            answer, full_prompt, chat_history = await nlp_controller.simple_chat(
                 query_text=answer_request.query,
                 max_output_tokens=answer_request.max_tokens,
                 temperature=answer_request.temperature
@@ -261,7 +279,7 @@ async def answer_query(request: Request,
         )
     
     try:
-        answer, full_prompt, chat_history = nlp_controller.answer_query(project=project, 
+        answer, full_prompt, chat_history = await nlp_controller.answer_query(project=project, 
                                                                         query_text=answer_request.query, 
                                                                         top_k=answer_request.top_k, 
                                                                         max_output_tokens=answer_request.max_tokens, 

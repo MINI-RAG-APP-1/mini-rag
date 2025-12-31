@@ -2,7 +2,7 @@ from ..BaseDataModel import BaseDataModel
 from ...db_schemas import DataChunk
 from typing import List
 from sqlalchemy.future import select
-from sqlalchemy import delete
+from sqlalchemy import delete, func
 
 
 class ChunkModel(BaseDataModel):
@@ -20,7 +20,6 @@ class ChunkModel(BaseDataModel):
         async with self.db_client() as session:
             async with session.begin():
                 session.add(chunk)
-            await session.commit()
             await session.refresh(chunk)
         
         return chunk
@@ -41,7 +40,6 @@ class ChunkModel(BaseDataModel):
                 for i in range(0, len(chunks), batch_size):
                     batch = chunks[i: i + batch_size]
                     session.add_all(batch)
-                await session.commit()
         
         return len(chunks)
     
@@ -61,6 +59,15 @@ class ChunkModel(BaseDataModel):
             async with session.begin():
                 query = delete(DataChunk).where(DataChunk.chunk_project_id == project_id)
                 result = await session.execute(query)
-                await session.commit()
         
         return result.rowcount
+
+    async def count_chunks_by_project(self, project_id: int) -> int:
+        count = 0
+        async with self.db_client() as session:
+            async with session.begin():
+                query = select(func.count(DataChunk.chunk_id)).where(DataChunk.chunk_project_id == project_id)
+                result = await session.execute(query)
+                count = result.scalar()
+        
+        return count

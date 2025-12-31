@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     FILE_STORAGE_PATH: str
     FILE_DEFAULT_CHUNK_SIZE: int
     
+    DB_TYPE_OPTIONS: List[str] = None
     DB_TYPE: str
     
     MONGO_URI: str
@@ -22,6 +23,8 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
     POSTGRES_MAIN_DB: str
     
+    GENERATION_BACKEND_OPTIONS: List[str] = None
+    EMBEDDING_BACKEND_OPTIONS: List[str] = None
     GENERATION_BACKEND: str
     EMBEDDING_BACKEND: str
     
@@ -38,11 +41,16 @@ class Settings(BaseSettings):
     DEFAULT_GENERATION_OUTPUT_MAX_TOKENS: int
     DEFAULT_GENERATION_INPUT_MAX_CHARACTERS: int
     
+    VECTOR_DB_BACKEND_OPTIONS: List[str] = None
+    VECTOR_DB_DISTANCE_METRIC_OPTIONS: List[str] = None
+    
     VECTOR_DB_BACKEND: str
     VECTOR_DB_PATH: str
     VECTOR_DB_PATH_NAME: str
     VECTOR_DB_DISTANCE_METRIC: str = None
+    VECTOR_DB_PGVEC_INDEX_THRESHOLD: int=100
     
+    LANGUAGE_OPTIONS: List[str] = None
     PRIMARY_LANGUAGE: str = "en"
     DEFAULT_LANGUAGE: str = "en"
     

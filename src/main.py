@@ -5,7 +5,7 @@ from helpers.config import get_settings
 from stores import LLMFactory, VectorDBFactory
 from stores.llm.templates.template_parser import TemplateParser
 import logging
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from motor.motor_asyncio import AsyncIOMotorClient
 from models.enums import DatabaseType
 
@@ -60,16 +60,16 @@ async def initialize_llm_clients(app: FastAPI, settings):
 async def initialize_vector_db(app: FastAPI, settings):
     """Initialize or reinitialize vector database"""
     # Disconnect existing connection if it exists
-    if hasattr(app, 'vector_db_client') and app.vector_db_client:
+    if hasattr(app, 'vectordb_client') and app.vectordb_client:
         try:
-            app.vector_db_client.disconnect()
+            app.vectordb_client.disconnect()
             logger.info("🛑 Previous VectorDB connection closed")
         except:
             pass
     
-    vectordb_factory = VectorDBFactory(settings)
-    app.vector_db_client = vectordb_factory.create(settings.VECTOR_DB_BACKEND)
-    app.vector_db_client.connect()
+    vectordb_factory = VectorDBFactory(settings, db_client=app.db_client)
+    app.vectordb_client = vectordb_factory.create(settings.VECTOR_DB_BACKEND)
+    await app.vectordb_client.connect()
     logger.info(f"✅ VectorDB connected: {settings.VECTOR_DB_BACKEND}")
 
 
@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await app.db_engine.dispose()
     logger.info("🛑 Database connection closed")
-    app.vector_db_client.disconnect()
+    app.vectordb_client.disconnect()
     logger.info("🛑 VectorDB connection closed")
 
 app = FastAPI(lifespan=lifespan)

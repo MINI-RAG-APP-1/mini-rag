@@ -3,6 +3,7 @@ from ..LLMEnums import CohereDocumentTypeEnums, DocumentTypeEnums, CohereRolesEn
 import cohere as CohereClient
 import logging
 from ..utils import ModelUtils
+from typing import List, Union
 
 class Cohere(LLMInterface, ModelUtils):
     
@@ -66,7 +67,7 @@ class Cohere(LLMInterface, ModelUtils):
     
     
     def embed_text(self, 
-                   text: str, 
+                   text: Union[str, List[str]],
                    document_type: str=None):
         
         if not self.client:
@@ -77,13 +78,16 @@ class Cohere(LLMInterface, ModelUtils):
             self.logger.error("Embedding model ID is not set.")
             return None
         
+        if isinstance(text, str):
+            text = [text]
+        
         (document, query) = (CohereDocumentTypeEnums.DOCUMENT.value, CohereDocumentTypeEnums.QUERY.value)
         
         input_type = query if document_type == DocumentTypeEnums.QUERY.value else document
         
         response = self.client.embed(
             model=self.embedding_model_id,
-            texts=[text],
+            texts=text,
             input_type=input_type,
             embedding_types=['float']
         )
@@ -97,7 +101,7 @@ class Cohere(LLMInterface, ModelUtils):
             self.logger.error("Failed to get embedding from Cohere response.")
             return None
         
-        return response.embeddings.float[0]
+        return response.embeddings.float
     
     
     def process_text(self, text: str):
@@ -112,4 +116,4 @@ class Cohere(LLMInterface, ModelUtils):
                          prompt: str, 
                          role: str):
         
-        return {"role": role, "text": self.process_text(prompt)}
+        return {"role": role, "text": prompt}

@@ -1,12 +1,17 @@
 import os
-from typing import Union
+from typing import Union, List
 from models.enums import ProcessingEnum
 from .BaseController import BaseController
 from .ProjectController import ProjectController
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from dataclasses import dataclass
 
-
+@dataclass
+class Document:
+    page_content: str
+    metadata: dict
+    
 class ProcessController(BaseController):
     def __init__(self, project_id: Union[int, str]):
         super().__init__()
@@ -60,12 +65,42 @@ class ProcessController(BaseController):
                              chunk_size: int = 100, 
                              overlap_size: int = 20):
         
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=overlap_size,
-            length_function=len,
-            separators=["\n\n", "\n", " ", ""]
-        )
+        docs = self.process_splitter(file_content=file_content,
+                                        chunk_size=chunk_size,)
         
-        docs = text_splitter.split_documents(file_content)
+        # text_splitter = RecursiveCharacterTextSplitter(
+        #     chunk_size=chunk_size,
+        #     chunk_overlap=overlap_size,
+        #     length_function=len,
+        #     separators=["\n\n", "\n", " ", ""]
+        # )
+        
+        # docs = text_splitter.split_documents(file_content)
         return docs
+
+    def process_splitter(self, 
+                         file_content: List[Document], 
+                         chunk_size: int = 100, split_tag='\n') -> List[Document]:
+        
+        texts = [doc.page_content for doc in file_content]
+        metadatas = [doc.metadata for doc in file_content]
+        
+        # Process each text with its corresponding metadata
+        chunks = []
+        
+        for idx, text in enumerate(texts):
+            metadata = metadatas[idx] if metadatas and idx < len(metadatas) else {}
+            
+            lines = [line.strip() for line in text.split(split_tag) if line.strip() != '']
+            
+            current_chunk = ""
+            for line in lines:
+                current_chunk += line + split_tag
+                if len(current_chunk) >= chunk_size:
+                    chunks.append(Document(page_content=current_chunk.strip(), metadata=metadata.copy()))
+                    current_chunk = ""
+            
+            if current_chunk:
+                chunks.append(Document(page_content=current_chunk.strip(), metadata=metadata.copy()))
+        
+        return chunks

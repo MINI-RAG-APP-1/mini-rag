@@ -9,6 +9,7 @@ from typing import List
 class ChunkModel(BaseDataModel):
     def __init__(self, db_client):
         super().__init__(db_client)
+        self.counters_collection = None
     
     
     @classmethod
@@ -22,6 +23,7 @@ class ChunkModel(BaseDataModel):
         collection_name = DataBaseEnum.COLLECTION_CHUNK_NAME.value
         all_collections = await self.db_client.list_collection_names()
         self.collection = self.db_client[collection_name]
+        self.counters_collection = self.db_client["counters"]
         
         if collection_name not in all_collections:
             print(f"⏳ Initializing collection: '{collection_name}'")
@@ -30,7 +32,22 @@ class ChunkModel(BaseDataModel):
                 await self.collection.create_index(**index)
     
     
+    async def _get_next_chunk_id(self) -> str:
+        """Get the next auto-incremented chunk_id as a string"""
+        result = await self.counters_collection.find_one_and_update(
+            {"_id": "chunk_id"},
+            {"$inc": {"sequence_value": 1}},
+            upsert=True,
+            return_document=True
+        )
+        return str(result["sequence_value"])
+    
+    
     async def insert_chunk(self, chunk: DataChunk) -> DataChunk:
+        # Generate auto-increment ID if not provided
+        if chunk.chunk_id is None:
+            chunk.chunk_id = await self._get_next_chunk_id()
+        
         result = await self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
         chunk.id = result.inserted_id
         return chunk
@@ -50,6 +67,11 @@ class ChunkModel(BaseDataModel):
     async def insert_many_chunks(self, 
                                  chunks: List[DataChunk], 
                                  batch_size: int = 100) -> List[DataChunk]:
+        
+        # Generate chunk_ids for chunks that don't have one
+        for chunk in chunks:
+            if chunk.chunk_id is None:
+                chunk.chunk_id = await self._get_next_chunk_id()
         
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i: i + batch_size]
@@ -78,3 +100,7 @@ class ChunkModel(BaseDataModel):
         result = await self.collection.delete_many({'chunk_project_id': project_id})
         
         return result.deleted_count
+
+    async def count_chunks_by_project(self, project_id: str) -> int:
+        count = await self.collection.count_documents({'chunk_project_id': project_id})
+        return count

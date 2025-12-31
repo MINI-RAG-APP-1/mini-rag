@@ -3,55 +3,61 @@ from qdrant_client import QdrantClient, models
 from ..VectorDBInterface import VectorDBInterface
 import logging
 from ..utils import get_distance_metrics
+from ..VectorDBEnums import VectorDBEnums
 from models.db_schemas import RetrievedDocument
 
 class Qdrant(VectorDBInterface):
     def __init__(self, 
                  db_path: str, 
-                 distance_metric: str):
+                 distance_metric: str,
+                 default_vector_size: int,
+                 *args, **kwargs):
         
         self.client = None
         self.db_path = db_path
         self.distance_metric = None
+        self.default_vector_size = default_vector_size
         
-        metrics_map = get_distance_metrics(special_map={"euclidean": "EUCLID"})
+        metrics_map = get_distance_metrics(vectordb_type=VectorDBEnums.QDRANT.value)
         
         if distance_metric in metrics_map:
             self.distance_metric = metrics_map[distance_metric]
         
         else:
-            return ValueError(f"Invalid distance metric: {distance_metric}")
+            raise ValueError(f"Invalid distance metric: {distance_metric}")
         
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger('uvicorn')
         
-    def connect(self):
+    async def connect(self):
         self.client = QdrantClient(path=self.db_path)
     
-    def disconnect(self):
+    async def disconnect(self):
         self.client = None
     
-    def is_collection_exists(self, collection_name: str) -> bool:
+    async def is_collection_existed(self, collection_name: str) -> bool:
         return self.client.collection_exists(collection_name=collection_name)
     
-    def list_collections(self) -> List:
+    async def list_collections(self) -> List:
         return self.client.get_collections()
     
-    def get_collection_info(self, collection_name: str) -> dict:
+    async def get_collection_info(self, collection_name: str) -> dict:
         return self.client.get_collection(collection_name=collection_name).model_dump()
     
-    def delete_collection(self, collection_name: str):
-        if self.is_collection_exists(collection_name):
+    async def delete_collection(self, collection_name: str):
+        if await self.is_collection_existed(collection_name):
+            self.logger.info(f"Deleting collection: {collection_name}")
             return self.client.delete_collection(collection_name=collection_name)
     
-    def create_collection(self, 
+    async def create_collection(self, 
                           collection_name: str, 
                           embedding_size: int, 
                           do_reset: bool=False):
         if do_reset: 
-            _ = self.delete_collection(collection_name=collection_name)
+            _ = await self.delete_collection(collection_name=collection_name)
         
-        if not self.is_collection_exists(collection_name):
-            _ = self.client.create_collection(
+        if not await self.is_collection_existed(collection_name):
+            self.logger.info(f"Creating Qdrant Collection: {collection_name}.")
+            _ = await self.client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(size=embedding_size,
                                                    distance=self.distance_metric))
@@ -59,19 +65,19 @@ class Qdrant(VectorDBInterface):
         
         return False
     
-    def insert_one(self, 
+    async def insert_one(self, 
                    collection_name: str, 
                    text: str,
                    vector: list, 
                    metadata: dict=None, 
                    record_id: str=None):
         
-        if not self.is_collection_exists(collection_name):
+        if not await self.is_collection_existed(collection_name):
             self.logger.error(f"Cannot insert into Collection: {collection_name} does not exist.")
             return False
         
         try:
-            self.client.upload_records(
+            await self.client.upload_records(
                 collection_name=collection_name,
                 records=[
                     models.Record(
@@ -88,7 +94,7 @@ class Qdrant(VectorDBInterface):
         
         return True
     
-    def insert_many(self, 
+    async def insert_many(self, 
                     collection_name: str, 
                     texts: list,
                     vectors: list, 
@@ -96,7 +102,7 @@ class Qdrant(VectorDBInterface):
                     record_ids: list=None,
                     batch_size: int=50):
         
-        if not self.is_collection_exists(collection_name):
+        if not await self.is_collection_existed(collection_name):
             self.logger.error(f"Cannot insert into Collection: {collection_name} does not exist.")
             return False
         
@@ -134,16 +140,16 @@ class Qdrant(VectorDBInterface):
         return True
             
     
-    def search_by_vector(self, 
+    async def search_by_vector(self, 
                          collection_name: str, 
                          query_vector: list,
                          top_k: int=5) -> List[RetrievedDocument]:
         
-        if not self.is_collection_exists(collection_name):
+        if not await self.is_collection_existed(collection_name):
             self.logger.error(f"Cannot search Collection: {collection_name} does not exist.")
             return []
         
-        results = self.client.search(
+        results = await self.client.search(
             collection_name=collection_name,
             query_vector=query_vector,
             limit=top_k

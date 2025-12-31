@@ -3,6 +3,7 @@ from ..LLMEnums import OPENAIRolesEnums
 from ..utils import ModelUtils
 from openai import OpenAI as OpenAIClient
 import logging
+from typing import List, Union
 
 class OpenAI(LLMInterface, ModelUtils):
     
@@ -68,7 +69,7 @@ class OpenAI(LLMInterface, ModelUtils):
     
     
     def embed_text(self, 
-                   text: str, 
+                   text: Union[str, List[str]],
                    document_type: str=None):
         
         if not self.client:
@@ -79,6 +80,9 @@ class OpenAI(LLMInterface, ModelUtils):
             self.logger.error("Embedding model ID is not set.")
             return None
 
+        if isinstance(text, str):
+            text = [text]
+        
         response = self.client.embeddings.create(
             model=self.embedding_model_id,
             input=text,
@@ -87,7 +91,8 @@ class OpenAI(LLMInterface, ModelUtils):
         if not response or not response.data or len(response.data) == 0 or not response.data[0].embedding:
             self.logger.error("Failed to get embedding from OpenAI response.")
             return None
-        return response.data[0].embedding
+        
+        return [data.embedding for data in response.data]
     
     
     def construct_prompt(self, 
@@ -103,3 +108,4 @@ class OpenAI(LLMInterface, ModelUtils):
             self.logger.warning("Input text exceeds the maximum allowed characters. It will be truncated.")
             
         return text[:self.default_input_max_characters]
+
