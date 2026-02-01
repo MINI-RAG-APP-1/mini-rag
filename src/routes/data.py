@@ -42,7 +42,6 @@ async def upload_data(request: Request,
     )
     
     project = await project_model.get_project_or_create_one(project_id=project_id)
-    # print(project)
     
     if not files:
         return JSONResponse(content={"message": "No files provided"}, status_code=status.HTTP_400_BAD_REQUEST)

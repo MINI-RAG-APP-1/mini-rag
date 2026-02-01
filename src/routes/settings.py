@@ -209,7 +209,6 @@ async def reload_app_settings(request: Request):
         
         # Get the app instance
         app = request.app
-        print(app)
         # Reinitialize all connections with new settings
         await initialize_database_connection(app, new_settings)
         await initialize_llm_clients(app, new_settings)

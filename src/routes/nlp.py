@@ -201,13 +201,13 @@ async def search_index(request: Request,
     
     result: List[RetrievedDocument] = await nlp_controller.search_vector_db(project=project, query_text=search_request.query, top_k=search_request.top_k)
     
-    result = [r.model_dump() for r in result]
-    
     if not result:
         return JSONResponse(
             content=message_handler(ResponseMessage.VECTOR_DB_SEARCH_FAILED.value.format(project_id=project_id)),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        
+    result = [r.model_dump() for r in result]
     
     return JSONResponse(
         content=message_handler(ResponseMessage.VECTOR_DB_SEARCH_COMPLETED.value.format(project_id=project_id), search_results=result),

@@ -357,7 +357,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    // \"asset_name\":\"\",\r\n    \"chunk_size\": 400,\r\n    \"overlap_size\": 20,\r\n    \"do_reset\": 1\r\n}",
+          "raw": "{\r\n    // \"asset_name\":\"\",\r\n    \"chunk_size\": 1024,\r\n    \"overlap_size\": 50,\r\n    \"do_reset\": 1\r\n}",
           "options": {
             "raw": {
               "language": "json"
